@@ -33,7 +33,7 @@ npm run dev
 
 Open http://localhost:5173 . The dev server listens on port 5173.
 
-Do not put `VITE_USE_MOCK=true` in `frontend/.env`. Vite reads `.env` during `vite build` as well as `vite dev`. A production build fails if `VITE_USE_MOCK` is `true`.
+Do not put `VITE_USE_MOCK=true` in `frontend/.env`. Vite reads `.env` during `vite build` as well as `vite dev`. Every `vite build`, including `vite build --mode staging`, fails if `VITE_USE_MOCK` is `true` or if `VITE_API_BASE` is missing or not `https`. Those builds use the same CSP as `vite build` with no mode flag.
 
 Mock checkout is available only when both `import.meta.env.DEV` and `VITE_USE_MOCK=true` are set. The **Approve (mock)** button then calls `POST /quotes/:id/paypal-order` and then `POST /quotes/:id/capture`. A production bundle does not register the mock worker. If that bundle sees `GET /api/health` with `"mock": true`, or `paypalClientId` equal to `MOCK`, it shows a blocked screen and does not render checkout.
 
@@ -60,7 +60,7 @@ The mock agent is keyword-driven: `research`, `security`, or `marketing` drafts 
 
 Leave `VITE_USE_MOCK` unset. For `npm run dev`, set `VITE_API_BASE` in `frontend/.env.development.local` to the API base, including the `/api` prefix (`http://localhost:8787/api` on a local server).
 
-A production build requires `VITE_API_BASE` to be an absolute `https://` URL. There is no localhost fallback in that build. Example:
+Any `vite build` requires `VITE_API_BASE` to be an absolute `https://` URL. There is no localhost fallback in that output. Example:
 
 ```bash
 VITE_API_BASE=https://api.example.invalid/api npm run build

@@ -9,12 +9,12 @@ import { contentSecurityPolicy, productionBuildError, resolveBuildEnv } from "./
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const DEV_API_BASE = "http://localhost:8787/api";
 
-function sandboxCsp(mode: string, env: Record<string, string>): Plugin {
+function sandboxCsp(command: string, env: Record<string, string>): Plugin {
   return {
     name: "sandbox-csp",
     transformIndexHtml(html) {
-      const apiBase = mode === "production" ? (env.VITE_API_BASE ?? "") : env.VITE_API_BASE || DEV_API_BASE;
-      return html.replaceAll("__CSP__", contentSecurityPolicy(mode, apiBase));
+      const apiBase = command === "build" ? (env.VITE_API_BASE ?? "") : env.VITE_API_BASE || DEV_API_BASE;
+      return html.replaceAll("__CSP__", contentSecurityPolicy(command, apiBase));
     },
   };
 }
@@ -39,14 +39,14 @@ function devMockWorker(): Plugin {
   };
 }
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
   const env = resolveBuildEnv(loadEnv(mode, rootDir, ""));
-  const buildError = productionBuildError(mode, env);
+  const buildError = productionBuildError(command, env);
   if (buildError) {
     throw new Error(buildError);
   }
   return {
-    plugins: [react(), sandboxCsp(mode, env), devMockWorker()],
+    plugins: [react(), sandboxCsp(command, env), devMockWorker()],
     resolve: {
       alias: {
         "@sonevibe/shared": path.resolve(rootDir, "../shared/src/index.ts"),

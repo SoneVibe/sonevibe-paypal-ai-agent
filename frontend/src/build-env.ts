@@ -11,8 +11,8 @@ export function resolveBuildEnv(fileEnv: Record<string, string>): Record<string,
   return merged;
 }
 
-export function productionBuildError(mode: string, env: Record<string, string | undefined>): string | null {
-  if (mode !== "production") {
+export function productionBuildError(command: string, env: Record<string, string | undefined>): string | null {
+  if (command !== "build") {
     return null;
   }
   if (env.VITE_USE_MOCK === "true") {
@@ -33,8 +33,8 @@ export function productionBuildError(mode: string, env: Record<string, string | 
   return null;
 }
 
-export function contentSecurityPolicy(mode: string, apiBase: string): string {
-  const dev = mode !== "production";
+export function contentSecurityPolicy(command: string, apiBase: string): string {
+  const dev = command !== "build";
   const apiOrigin = new URL(apiBase).origin;
   const scriptSrc = ["'self'", PAYPAL_SANDBOX_PAGE, dev ? "'unsafe-inline'" : ""].filter(Boolean).join(" ");
   const connectSrc = [

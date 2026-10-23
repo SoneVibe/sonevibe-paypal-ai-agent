@@ -12,13 +12,13 @@ const vitePackageJson = require.resolve("vite/package.json");
 const viteBin = path.join(path.dirname(vitePackageJson), "bin/vite.js");
 const frontendDir = path.resolve(process.cwd());
 
-async function runBuild(extra: Record<string, string>): Promise<{ code: number; output: string }> {
+async function runBuild(extra: Record<string, string>, args: string[] = ["build"]): Promise<{ code: number; output: string }> {
   const env: NodeJS.ProcessEnv = { ...process.env, NODE_ENV: "production" };
   delete env.VITE_USE_MOCK;
   delete env.VITE_API_BASE;
   Object.assign(env, extra);
   try {
-    const result = await execFileAsync(process.execPath, [viteBin, "build"], {
+    const result = await execFileAsync(process.execPath, [viteBin, ...args], {
       cwd: frontendDir,
       env,
     });
@@ -34,21 +34,22 @@ async function runBuild(extra: Record<string, string>): Promise<{ code: number; 
 
 describe("production build guards", () => {
   it("rejects mock mode and a non-https API base before packaging", () => {
-    expect(productionBuildError("production", { VITE_USE_MOCK: "true", VITE_API_BASE: "https://api.example.invalid/api" })).toMatch(
+    expect(productionBuildError("build", { VITE_USE_MOCK: "true", VITE_API_BASE: "https://api.example.invalid/api" })).toMatch(
       /VITE_USE_MOCK/,
     );
-    expect(productionBuildError("production", { VITE_USE_MOCK: "false" })).toMatch(/https/);
-    expect(productionBuildError("production", { VITE_API_BASE: "http://localhost:8787/api" })).toMatch(/https/);
-    expect(productionBuildError("development", { VITE_USE_MOCK: "true", VITE_API_BASE: "http://localhost:8787/api" })).toBe(
+    expect(productionBuildError("build", { VITE_USE_MOCK: "false" })).toMatch(/https/);
+    expect(productionBuildError("build", { VITE_API_BASE: "http://localhost:8787/api" })).toMatch(/https/);
+    expect(productionBuildError("serve", { VITE_USE_MOCK: "true", VITE_API_BASE: "http://localhost:8787/api" })).toBe(
       null,
     );
-    const policy = contentSecurityPolicy("production", "https://api.example.invalid/api");
+    const policy = contentSecurityPolicy("build", "https://api.example.invalid/api");
     expect(policy).toContain("https://api.example.invalid");
     expect(policy).toContain("https://www.sandbox.paypal.com");
     expect(policy).toContain("https://api-m.sandbox.paypal.com");
     expect(policy).not.toContain("www.paypal.com");
     expect(policy).not.toContain("localhost");
-    expect(contentSecurityPolicy("development", "http://localhost:8787/api")).toContain("http://localhost:8787");
+    expect(policy).not.toMatch(/script-src[^;]*unsafe-inline/);
+    expect(contentSecurityPolicy("serve", "http://localhost:8787/api")).toContain("http://localhost:8787");
   });
 
   it("fails a production build when mock mode is on", async () => {
@@ -92,5 +93,35 @@ describe("production build guards", () => {
     expect(source).not.toContain("setupWorker");
     expect(source).not.toContain("http://localhost:8787");
     expect(readdirSync(path.join(frontendDir, "dist")).join(" ")).not.toContain(".map");
+  }, 120_000);
+
+  it("applies the same guard and CSP to vite build --mode staging", async () => {
+    const mockOn = await runBuild(
+      { VITE_USE_MOCK: "true", VITE_API_BASE: "https://api.example.invalid/api" },
+      ["build", "--mode", "staging"],
+    );
+    expect(mockOn.code).not.toBe(0);
+    expect(mockOn.output).toMatch(/VITE_USE_MOCK/);
+
+    const httpBase = await runBuild(
+      { VITE_USE_MOCK: "false", VITE_API_BASE: "http://localhost:8787/api" },
+      ["build", "--mode", "staging"],
+    );
+    expect(httpBase.code).not.toBe(0);
+    expect(httpBase.output).toMatch(/https/);
+
+    const built = await runBuild(
+      { VITE_USE_MOCK: "false", VITE_API_BASE: "https://api.example.invalid/api" },
+      ["build", "--mode", "staging"],
+    );
+    expect(built.code, built.output).toBe(0);
+    const html = readFileSync(path.join(frontendDir, "dist/index.html"), "utf8");
+    expect(html).toContain("https://api.example.invalid");
+    expect(html).toContain("https://www.sandbox.paypal.com");
+    expect(html).toContain("https://api-m.sandbox.paypal.com");
+    expect(html).not.toContain("localhost");
+    expect(html).not.toContain("ws:");
+    expect(html).not.toMatch(/script-src[^;]*unsafe-inline/);
+    expect(existsSync(path.join(frontendDir, "dist/mockServiceWorker.js"))).toBe(false);
   }, 120_000);
 });
