@@ -46,8 +46,9 @@ export function AboutPage() {
       {config.terms ? <p>{config.terms}</p> : <p>Terms have not been supplied yet.</p>}
       <h2>Try it</h2>
       <p>
-        Local mock mode needs no backend: set <code>VITE_USE_MOCK=true</code> and run <code>npm run dev</code>. Mock
-        mode is for development only, not for the demo video or judging.
+        Local mock mode needs no backend: set <code>VITE_USE_MOCK=true</code> in <code>.env.development.local</code> and
+        run <code>npm run dev</code>. Mock mode is for development only, not for a production build, the demo video, or
+        judging.
       </p>
       <p>
         With the backend running, leave mock mode off. This screen stays closed unless health reports sandbox

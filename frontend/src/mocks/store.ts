@@ -163,6 +163,25 @@ function rememberTriggers(text: string): void {
   }
 }
 
+function rememberEmailTriggers(localPart: string): void {
+  const tags = localPart
+    .split("+")
+    .slice(1)
+    .map((part) => part.split(".")[0]?.toLowerCase() ?? "");
+  if (tags.includes("declined")) {
+    nextCapture = "declined";
+  }
+  if (tags.includes("capturefail")) {
+    nextCapture = "capturefail";
+  }
+  if (tags.includes("pending")) {
+    nextCapture = "pending";
+  }
+  if (tags.includes("paypaldown")) {
+    nextOrderDown = true;
+  }
+}
+
 function wantsTwo(message: string): boolean {
   return /(^|\s)(2|two)(\s|$)/i.test(message);
 }
@@ -349,8 +368,10 @@ export function handleGetQuote(quoteId: string, sessionId: string | null): MockR
   }
   if (pendingUpgradeId === quoteId) {
     pendingUpgradeId = null;
-    const captureId = `MOCK-CAPTURE-${pad(captureSeq)}`;
-    captureSeq += 1;
+    const captureId = access.row.quote.paypal.captureId ?? `MOCK-CAPTURE-${pad(captureSeq)}`;
+    if (!access.row.quote.paypal.captureId) {
+      captureSeq += 1;
+    }
     access.row.quote = QuoteSchema.parse({
       ...access.row.quote,
       status: "captured",
@@ -545,6 +566,8 @@ export function handleCapture(
       return { status: 200, body: { status: "DECLINED", captureId: null, quote: access.row.quote } };
     }
     if (flag === "pending") {
+      const captureId = `MOCK-CAPTURE-${pad(captureSeq)}`;
+      captureSeq += 1;
       access.row.quote = QuoteSchema.parse({
         ...quote,
         status: "ordered",
@@ -554,12 +577,12 @@ export function handleCapture(
         paypal: {
           ...quote.paypal,
           orderStatus: "APPROVED",
-          captureId: null,
+          captureId,
           captureStatus: "PENDING",
         },
       });
       pendingUpgradeId = quote.id;
-      return { status: 200, body: { status: "PENDING", captureId: null, quote: access.row.quote } };
+      return { status: 200, body: { status: "PENDING", captureId, quote: access.row.quote } };
     }
     const captureId = `MOCK-CAPTURE-${pad(captureSeq)}`;
     captureSeq += 1;
@@ -598,7 +621,7 @@ export function handleInvoice(
     }
     const email = parsed.data.email;
     const localPart = email.split("@")[0] ?? "";
-    rememberTriggers(localPart);
+    rememberEmailTriggers(localPart);
     if (!/^[^@\s]+@(personal|business)\.example\.com$/i.test(email)) {
       return errorResult("INVOICE_EMAIL_NOT_ALLOWED");
     }

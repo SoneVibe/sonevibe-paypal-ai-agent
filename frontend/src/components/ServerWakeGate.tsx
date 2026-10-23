@@ -4,8 +4,10 @@ import { getConfig, getHealth } from "../api/client";
 import { isApiError } from "../api/errors";
 import { AppStateProvider } from "../app-state";
 import { COPY } from "../copy";
+import { productionMockBlocked } from "../paypal/sdk";
 import { timing } from "../timing";
 import { ErrorBanner } from "./ErrorBanner";
+import { MockBlockedScreen } from "./MockBlockedScreen";
 import { MockModeBanner } from "./MockModeBanner";
 import { NotSandboxScreen } from "./NotSandboxScreen";
 import { SandboxBanner } from "./SandboxBanner";
@@ -15,14 +17,17 @@ type Phase =
   | { name: "checking" }
   | { name: "waking" }
   | { name: "blocked" }
+  | { name: "mockBlocked" }
   | { name: "error"; message: string }
   | { name: "ready"; health: Health; config: AppConfig };
 
 export function ServerWakeGate({
   envMock,
+  production = import.meta.env.PROD,
   children,
 }: {
   envMock: boolean;
+  production?: boolean;
   children: (health: Health, config: AppConfig) => ReactNode;
 }) {
   const [phase, setPhase] = useState<Phase>({ name: "checking" });
@@ -51,6 +56,16 @@ export function ServerWakeGate({
           setPhase({ name: "blocked" });
           return;
         }
+        if (
+          productionMockBlocked({
+            prod: production,
+            healthMock: health.mock,
+            clientId: config.paypalClientId,
+          })
+        ) {
+          setPhase({ name: "mockBlocked" });
+          return;
+        }
         setPhase({ name: "ready", health, config });
       } catch (error) {
         if (cancelled || (error instanceof DOMException && error.name === "AbortError")) {
@@ -73,7 +88,7 @@ export function ServerWakeGate({
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [attempt]);
+  }, [attempt, production]);
 
   const showMock = envMock || (phase.name === "ready" && phase.health.mock);
   return (
@@ -95,6 +110,7 @@ export function ServerWakeGate({
         </main>
       ) : null}
       {phase.name === "blocked" ? <NotSandboxScreen /> : null}
+      {phase.name === "mockBlocked" ? <MockBlockedScreen /> : null}
       {phase.name === "error" ? (
         <main id="main" className="page" tabIndex={-1}>
           <h1 tabIndex={-1}>The sandbox server did not respond</h1>

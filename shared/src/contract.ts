@@ -1,9 +1,12 @@
 import { z } from "zod";
 
 /**
- * API contract v1.0 (2026-10-23).
+ * API contract v1.1 (2026-10-23).
  * Backend must review this module together with shared/fixtures.
  * Money fields are decimal strings. Request schemas reject amount fields.
+ * Chat scenario words stay hash triggers such as "#declined".
+ * Invoice emails use plus addressing, such as sb-abc+declined@personal.example.com, because email() rejects "#".
+ * captureId stays nullable and is a string whenever PayPal returned a capture id, including PENDING.
  */
 
 export const ERROR_CODES = [

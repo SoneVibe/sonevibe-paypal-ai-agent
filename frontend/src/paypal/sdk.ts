@@ -34,21 +34,28 @@ declare global {
   }
 }
 
-export function shouldUseMockCheckout(options: {
-  healthMock: boolean;
-  envMock: boolean;
-  clientId: string;
-}): boolean {
-  return options.healthMock || options.envMock || options.clientId === "MOCK";
+export function shouldUseMockCheckout(options: { dev: boolean; useMock: string | undefined }): boolean {
+  return options.dev && options.useMock === "true";
 }
 
-export function isSafeInvoiceUrl(value: string): boolean {
+export function productionMockBlocked(options: {
+  prod: boolean;
+  healthMock: boolean;
+  clientId: string;
+}): boolean {
+  return options.prod && (options.healthMock || options.clientId === "MOCK");
+}
+
+export function isSafeInvoiceUrl(value: string, dev = import.meta.env.DEV): boolean {
   try {
     const url = new URL(value);
     if (url.protocol !== "https:") {
       return false;
     }
-    return url.hostname === "www.sandbox.paypal.com" || url.hostname === "example.invalid";
+    if (url.hostname === "www.sandbox.paypal.com") {
+      return true;
+    }
+    return dev && url.hostname === "example.invalid";
   } catch {
     return false;
   }

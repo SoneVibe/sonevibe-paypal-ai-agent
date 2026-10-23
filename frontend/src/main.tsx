@@ -4,7 +4,7 @@ import { App } from "./App";
 import "./styles.css";
 
 async function boot(): Promise<void> {
-  if (import.meta.env.VITE_USE_MOCK === "true") {
+  if (import.meta.env.DEV && import.meta.env.VITE_USE_MOCK === "true") {
     const { startMockWorker } = await import("./mocks/browser");
     await startMockWorker();
   }

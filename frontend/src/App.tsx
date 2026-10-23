@@ -25,7 +25,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, BoundaryState>
 }
 
 export function App() {
-  const envMock = import.meta.env.VITE_USE_MOCK === "true";
+  const envMock = import.meta.env.DEV && import.meta.env.VITE_USE_MOCK === "true";
   return (
     <AppErrorBoundary>
       <a className="skip-link" href="#main">

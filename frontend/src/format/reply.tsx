@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { COPY } from "../copy";
 
 const INLINE =
   /(\*\*[^*\n]+\*\*)|(\[[^\]\n]+\]\([^)\s]+\))|(#\/quote\/[A-Za-z0-9_-]+)|(https?:\/\/[^\s]+)/g;
@@ -30,12 +31,12 @@ export function parseInline(text: string): ReactNode[] {
       const label = body?.[1] ?? markdownLink;
       const target = body?.[2] ?? "";
       if (INTERNAL_QUOTE.test(target)) {
-        nodes.push(internalLink(target, label, key));
+        nodes.push(internalLink(target, COPY.viewQuote, key));
       } else {
         nodes.push(`${label} (${target})`);
       }
     } else if (hashLink && INTERNAL_QUOTE.test(hashLink)) {
-      nodes.push(internalLink(hashLink, hashLink, key));
+      nodes.push(internalLink(hashLink, COPY.viewQuote, key));
     } else if (url) {
       nodes.push(url);
     } else {

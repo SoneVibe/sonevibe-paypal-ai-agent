@@ -4,6 +4,10 @@ export const COPY = {
   waking: "Waking up the demo server…",
   notSandboxTitle: "Sandbox required",
   notSandboxCode: "NOT_SANDBOX",
+  mockBlockedTitle: "This build does not run in mock mode",
+  mockBlockedCode: "MOCK",
+  mockBlockedBody:
+    "The server reported mock mode. Checkout stays closed in this build, and no payment was attempted.",
   pricing: "Pricing not yet configured",
   expired: "This quote expired",
   cancelled: "Payment cancelled. Your quote is saved.",

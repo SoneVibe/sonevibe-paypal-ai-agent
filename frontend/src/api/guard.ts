@@ -6,6 +6,10 @@ const FORBIDDEN_KEYS = new Set([
   "lineTotal",
   "subtotal",
   "total",
+  "value",
+  "unit_amount",
+  "currency_code",
+  "discount",
 ]);
 
 export function assertNoMoneyFields(value: unknown, path = "body"): void {

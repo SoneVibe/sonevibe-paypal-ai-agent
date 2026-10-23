@@ -22,6 +22,11 @@ describe("output safety", () => {
       const source = readFileSync(file, "utf8");
       expect(source, file).not.toContain("dangerouslySetInnerHTML");
       expect(source, file).not.toMatch(/\.innerHTML\s*=/);
+      expect(source, file).not.toMatch(/\.outerHTML\s*=/);
+      expect(source, file).not.toContain("insertAdjacentHTML");
+      expect(source, file).not.toContain("document.write");
+      expect(source, file).not.toMatch(/\beval\s*\(/);
+      expect(source, file).not.toContain("new Function");
     }
   });
 });

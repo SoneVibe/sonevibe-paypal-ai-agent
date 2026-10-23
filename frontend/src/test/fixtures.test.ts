@@ -50,6 +50,17 @@ describe("shared fixtures", () => {
     }
   });
 
+  it("uses mock quote ids and a pending capture id", () => {
+    const draft = Object.entries(files).find(([path]) => path.endsWith("quote.draft.json"))?.[1] as { id: string };
+    const pending = Object.entries(files).find(([path]) => path.endsWith("capture.pending.json"))?.[1] as {
+      captureId: string;
+      quote: { paypal: { captureId: string } };
+    };
+    expect(draft.id).toBe("q_mock_0007");
+    expect(pending.captureId).toBe("MOCK-CAPTURE-0002");
+    expect(pending.quote.paypal.captureId).toBe("MOCK-CAPTURE-0002");
+  });
+
   it("validates every fixture against the contract schema", () => {
     for (const [path, value] of Object.entries(files)) {
       const name = path.split("/").pop() ?? path;

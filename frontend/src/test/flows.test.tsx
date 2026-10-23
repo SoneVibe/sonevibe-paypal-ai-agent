@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { App } from "../App";
+import { ServerWakeGate } from "../components/ServerWakeGate";
 import { apiUrl } from "../api/client";
 import { COPY } from "../copy";
 import { seedQuote, setArtificialDelay, traffic } from "../mocks/store";
@@ -14,6 +15,7 @@ import expiredFixture from "../../../shared/fixtures/quote.expired.json";
 import orderedFixture from "../../../shared/fixtures/quote.ordered.json";
 import alreadyCaptured from "../../../shared/fixtures/error.ALREADY_CAPTURED.json";
 import healthMock from "../../../shared/fixtures/health.mock.json";
+import configMock from "../../../shared/fixtures/config.mock.json";
 import { server } from "./setup";
 
 function renderApp(hash = "#/") {
@@ -78,14 +80,64 @@ describe("sandbox shell", () => {
     expect(await screen.findByRole("heading", { name: "Chat with the assistant" })).toBeInTheDocument();
   });
 
-  it("hides the mock banner when health is not in mock mode", async () => {
-    server.use(
-      http.get(apiUrl("/health"), () => HttpResponse.json({ ...healthMock, mock: false })),
-    );
+  it("keeps the mock banner when the dev flag is on, even if health.mock is false", async () => {
+    server.use(http.get(apiUrl("/health"), () => HttpResponse.json({ ...healthMock, mock: false })));
     renderApp();
+    await screen.findByRole("heading", { name: "Chat with the assistant" });
+    expect(screen.getByText(COPY.mockBanner)).toBeInTheDocument();
+    expect(screen.getByText(COPY.sandboxBanner)).toBeInTheDocument();
+  });
+
+  it("hides the mock banner when the dev flag is off and health is not mock", async () => {
+    server.use(http.get(apiUrl("/health"), () => HttpResponse.json({ ...healthMock, mock: false })));
+    render(
+      <ServerWakeGate envMock={false} production={false}>
+        {() => <h1>Chat with the assistant</h1>}
+      </ServerWakeGate>,
+    );
     await screen.findByRole("heading", { name: "Chat with the assistant" });
     expect(screen.queryByText(COPY.mockBanner)).not.toBeInTheDocument();
     expect(screen.getByText(COPY.sandboxBanner)).toBeInTheDocument();
+  });
+
+  it("closes a production build when health reports mock mode", async () => {
+    render(
+      <ServerWakeGate envMock={false} production>
+        {() => <p>app-ready</p>}
+      </ServerWakeGate>,
+    );
+    expect(await screen.findByRole("heading", { name: COPY.mockBlockedTitle })).toBeInTheDocument();
+    expect(screen.getByText(COPY.mockBlockedCode)).toBeInTheDocument();
+    expect(screen.queryByText("app-ready")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: COPY.approveMock })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(COPY.messageLabel)).not.toBeInTheDocument();
+  });
+
+  it("closes a production build when the PayPal client id is MOCK", async () => {
+    server.use(http.get(apiUrl("/health"), () => HttpResponse.json({ ...healthMock, mock: false })));
+    render(
+      <ServerWakeGate envMock={false} production>
+        {() => <p>app-ready</p>}
+      </ServerWakeGate>,
+    );
+    expect(await screen.findByRole("heading", { name: COPY.mockBlockedTitle })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: COPY.approveMock })).not.toBeInTheDocument();
+    expect(screen.queryByText("app-ready")).not.toBeInTheDocument();
+  });
+
+  it("opens a production build when the server is a non-mock sandbox", async () => {
+    server.use(
+      http.get(apiUrl("/health"), () => HttpResponse.json({ ...healthMock, mock: false })),
+      http.get(apiUrl("/config"), () => HttpResponse.json({ ...configMock, paypalClientId: "sb-client" })),
+    );
+    render(
+      <ServerWakeGate envMock={false} production>
+        {() => <p>app-ready</p>}
+      </ServerWakeGate>,
+    );
+    expect(await screen.findByText("app-ready")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: COPY.mockBlockedTitle })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: COPY.approveMock })).not.toBeInTheDocument();
   });
 });
 

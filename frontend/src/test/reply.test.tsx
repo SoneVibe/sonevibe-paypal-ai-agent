@@ -4,7 +4,7 @@ import { AgentReply } from "../format/reply";
 
 describe("agent reply renderer", () => {
   it("renders bold, lists, and internal quote links", () => {
-    render(
+    const { container } = render(
       <AgentReply
         text={
           "See **security**.\n\n- First\n- Second\n\n1. One\n\n[Open the draft quote](#/quote/q_mock_0001)\n\n#/quote/q_mock_0002"
@@ -13,14 +13,12 @@ describe("agent reply renderer", () => {
     );
     expect(screen.getByText("security").tagName).toBe("STRONG");
     expect(screen.getAllByRole("list")).toHaveLength(2);
-    expect(screen.getByRole("link", { name: "Open the draft quote" })).toHaveAttribute(
-      "href",
-      "#/quote/q_mock_0001",
-    );
-    expect(screen.getByRole("link", { name: "#/quote/q_mock_0002" })).toHaveAttribute(
-      "href",
-      "#/quote/q_mock_0002",
-    );
+    const links = screen.getAllByRole("link", { name: "View quote" });
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveAttribute("href", "#/quote/q_mock_0001");
+    expect(links[1]).toHaveAttribute("href", "#/quote/q_mock_0002");
+    expect(screen.queryByRole("link", { name: "Open the draft quote" })).not.toBeInTheDocument();
+    expect(container.textContent).not.toContain("Open the draft quote");
   });
 
   it("keeps external urls and markup as text", () => {

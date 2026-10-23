@@ -25,9 +25,8 @@ export function AppStateProvider({
 }) {
   const [quote, setQuoteState] = useState<Quote | null>(null);
   const mockCheckout = shouldUseMockCheckout({
-    healthMock: health.mock,
-    envMock: import.meta.env.VITE_USE_MOCK === "true",
-    clientId: config.paypalClientId,
+    dev: import.meta.env.DEV,
+    useMock: import.meta.env.VITE_USE_MOCK,
   });
 
   const setQuote = useCallback((next: Quote | null) => {

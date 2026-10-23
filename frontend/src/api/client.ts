@@ -20,8 +20,14 @@ import { assertNoMoneyFields } from "./guard";
 import { getSessionId } from "../session";
 
 export function apiBase(): string {
-  const configured = import.meta.env.VITE_API_BASE?.trim();
-  return (configured || "http://localhost:8787/api").replace(/\/$/, "");
+  const configured = import.meta.env.VITE_API_BASE?.trim().replace(/\/$/, "") ?? "";
+  if (import.meta.env.PROD) {
+    if (!configured.startsWith("https://")) {
+      throw new Error("VITE_API_BASE must be set to an https URL");
+    }
+    return configured;
+  }
+  return configured || "http://localhost:8787/api";
 }
 
 export function apiUrl(path: string): string {

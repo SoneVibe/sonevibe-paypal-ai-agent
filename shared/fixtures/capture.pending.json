@@ -1,6 +1,6 @@
 {
   "status": "PENDING",
-  "captureId": null,
+  "captureId": "MOCK-CAPTURE-0002",
   "quote": {
     "id": "q_mock_0002",
     "status": "ordered",
@@ -27,7 +27,7 @@
     "paypal": {
       "orderId": "MOCK-ORDER-0002",
       "orderStatus": "APPROVED",
-      "captureId": null,
+      "captureId": "MOCK-CAPTURE-0002",
       "captureStatus": "PENDING",
       "invoiceId": null,
       "invoiceStatus": null,
